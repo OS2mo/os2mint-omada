@@ -1,0 +1,13 @@
+Nyt felt i omadaview (og i omada) C_OS2MO_ID
+Slet OmadaUser.identity_category
+
+C_OS2MO_ID => NON-manual (adresser og it-konti)
+NO C_OS2MO_ID => manual (+engagement)
+
+"C_OS2MO_ID":"SJ-15942" bruger kommer fra SD
+"C_OS2MO_ID":null bruger er manuelt oprettet i omada
+
+Vi stopper med at kigge på IDENTITYCATEGORY=561 for at vurdere om det er en
+"manuel" bruger, og i stedet kigge på C_OS2MO_ID=null, korrekt?
+
+
