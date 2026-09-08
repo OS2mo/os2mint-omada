@@ -59,6 +59,41 @@ query get_employee_uuid_from_ituser($uuids: [UUID!]) {
   }
 }
 
+query get_employee_uuids_from_engagement_relations($uuids: [UUID!]) {
+  itusers(filter: { engagement: { uuids: $uuids }, from_date: null, to_date: null }) {
+    objects {
+      validities(start: null, end: null) {
+        person(filter: { from_date: null, to_date: null }) {
+          uuid
+        }
+      }
+    }
+  }
+  addresses(
+    filter: { engagement: { uuids: $uuids }, from_date: null, to_date: null }
+  ) {
+    objects {
+      validities(start: null, end: null) {
+        person(filter: { from_date: null, to_date: null }) {
+          uuid
+        }
+      }
+    }
+  }
+}
+
+query get_employee_uuids_from_ituser_relations($uuids: [UUID!]) {
+  addresses(filter: { ituser: { uuids: $uuids }, from_date: null, to_date: null }) {
+    objects {
+      validities(start: null, end: null) {
+        person(filter: { from_date: null, to_date: null }) {
+          uuid
+        }
+      }
+    }
+  }
+}
+
 query get_employee_states($uuids: [UUID!]) {
   employees(filter: { uuids: $uuids, from_date: null, to_date: null }) {
     objects {
