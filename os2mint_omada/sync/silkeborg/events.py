@@ -9,6 +9,7 @@ from fastramqpi.events import Event
 from fastramqpi.events import Listener
 from fastramqpi.ramqp import Router
 from fastramqpi.ramqp.depends import rate_limit
+from more_itertools import only
 
 from os2mint_omada.omada.event_generator import OmadaEvent
 
@@ -165,6 +166,14 @@ async def sync_mo_addresses(
 ) -> None:
     employee_uuid = await mo.get_employee_uuid_from_ituser(event.subject)
     if employee_uuid is None:
+        # The IT-user could not be resolved directly - most likely because it was
+        # deleted. Recover the affected employee(s) from the addresses that still
+        # reference it, so they get reconciled.
+        employee_uuids = await mo.get_employee_uuids_from_ituser_relations(
+            event.subject
+        )
+        employee_uuid = only(employee_uuids)
+    if not employee_uuid:
         logger.info("No employee for IT user: skipping addresses synchronisation")
         return
     await sync_addresses(
@@ -182,6 +191,14 @@ async def sync_mo_it_users(
 ) -> None:
     employee_uuid = await mo.get_employee_uuid_from_engagement(event.subject)
     if employee_uuid is None:
+        # The engagement could not be resolved directly - most likely because it
+        # was deleted. Recover the affected employee(s) from the Omada-managed
+        # objects that still reference it, so their IT-users get reconciled.
+        employee_uuids = await mo.get_employee_uuids_from_engagement_relations(
+            event.subject
+        )
+        employee_uuid = only(employee_uuids)
+    if not employee_uuid:
         logger.info("No employee for engagement: skipping IT user synchronisation")
         return
     await sync_it_users(

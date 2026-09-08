@@ -67,6 +67,46 @@ class MO:
         uuids = {p.uuid for v in it_user.validities for p in (v.person or [])}
         return one(uuids)  # it's an error if different UUIDs are returned
 
+    async def get_employee_uuids_from_engagement_relations(
+        self, eng_uuid: UUID
+    ) -> set[UUID]:
+        """Recover the employee(s) whose objects still reference an engagement.
+
+        Used as a fallback when the engagement itself can no longer be resolved
+        (e.g. it was deleted via `engagement_delete`), since MO's `engagement`
+        filter matches the stored reference even after the engagement is gone -
+        as long as a linked IT-user or address still points to it.
+        """
+        result = await self.graphql_client.get_employee_uuids_from_engagement_relations(
+            uuids=[eng_uuid]
+        )
+        return {
+            person.uuid
+            for objects in (result.itusers.objects, result.addresses.objects)
+            for relation in objects
+            for validity in relation.validities
+            for person in (validity.person or [])
+        }
+
+    async def get_employee_uuids_from_ituser_relations(
+        self, ituser_uuid: UUID
+    ) -> set[UUID]:
+        """Recover the employee(s) whose addresses still reference an IT-user.
+
+        The IT-user counterpart of `get_employee_uuids_from_engagement_relations`,
+        used as a fallback when the IT-user itself can no longer be resolved (e.g.
+        it was deleted via `ituser_delete`).
+        """
+        result = await self.graphql_client.get_employee_uuids_from_ituser_relations(
+            uuids=[ituser_uuid]
+        )
+        return {
+            person.uuid
+            for relation in result.addresses.objects
+            for validity in relation.validities
+            for person in (validity.person or [])
+        }
+
     async def get_employee_states(self, uuid: UUID) -> set[Employee]:
         result = await self.graphql_client.get_employee_states(uuids=[uuid])
         employee = only(result.objects)
