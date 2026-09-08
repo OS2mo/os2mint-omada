@@ -47,6 +47,12 @@ from .get_employee_uuid_from_engagement import GetEmployeeUuidFromEngagement
 from .get_employee_uuid_from_engagement import GetEmployeeUuidFromEngagementEngagements
 from .get_employee_uuid_from_ituser import GetEmployeeUuidFromItuser
 from .get_employee_uuid_from_ituser import GetEmployeeUuidFromItuserItusers
+from .get_employee_uuids_from_engagement_relations import (
+    GetEmployeeUuidsFromEngagementRelations,
+)
+from .get_employee_uuids_from_ituser_relations import (
+    GetEmployeeUuidsFromItuserRelations,
+)
 from .get_it_systems import GetItSystems
 from .get_it_systems import GetItSystemsItsystems
 from .get_org_unit_validity import GetOrgUnitValidity
@@ -174,6 +180,61 @@ class GraphQLClient(AsyncBaseClient):
         response = await self.execute(query=query, variables=variables)
         data = self.get_data(response)
         return GetEmployeeUuidFromItuser.parse_obj(data).itusers
+
+    async def get_employee_uuids_from_engagement_relations(
+        self, uuids: Union[Optional[List[UUID]], UnsetType] = UNSET
+    ) -> GetEmployeeUuidsFromEngagementRelations:
+        query = gql(
+            """
+            query get_employee_uuids_from_engagement_relations($uuids: [UUID!]) {
+              itusers(filter: {engagement: {uuids: $uuids}, from_date: null, to_date: null}) {
+                objects {
+                  validities(start: null, end: null) {
+                    person(filter: {from_date: null, to_date: null}) {
+                      uuid
+                    }
+                  }
+                }
+              }
+              addresses(filter: {engagement: {uuids: $uuids}, from_date: null, to_date: null}) {
+                objects {
+                  validities(start: null, end: null) {
+                    person(filter: {from_date: null, to_date: null}) {
+                      uuid
+                    }
+                  }
+                }
+              }
+            }
+            """
+        )
+        variables: dict[str, object] = {"uuids": uuids}
+        response = await self.execute(query=query, variables=variables)
+        data = self.get_data(response)
+        return GetEmployeeUuidsFromEngagementRelations.parse_obj(data)
+
+    async def get_employee_uuids_from_ituser_relations(
+        self, uuids: Union[Optional[List[UUID]], UnsetType] = UNSET
+    ) -> GetEmployeeUuidsFromItuserRelations:
+        query = gql(
+            """
+            query get_employee_uuids_from_ituser_relations($uuids: [UUID!]) {
+              addresses(filter: {ituser: {uuids: $uuids}, from_date: null, to_date: null}) {
+                objects {
+                  validities(start: null, end: null) {
+                    person(filter: {from_date: null, to_date: null}) {
+                      uuid
+                    }
+                  }
+                }
+              }
+            }
+            """
+        )
+        variables: dict[str, object] = {"uuids": uuids}
+        response = await self.execute(query=query, variables=variables)
+        data = self.get_data(response)
+        return GetEmployeeUuidsFromItuserRelations.parse_obj(data)
 
     async def get_employee_states(
         self, uuids: Union[Optional[List[UUID]], UnsetType] = UNSET
