@@ -70,7 +70,7 @@ async def sync_addresses(
 
     # Get current MO engagements
     mo_engagements = await mo.get_employee_engagements(uuid=employee_uuid)
-    engagements = {e.user_key: e for e in mo_engagements}
+    engagements = {e.user_key: e.uuid for e in mo_engagements if e.uuid is not None}
 
     # Get current MO IT-users
     it_systems = await mo.get_it_systems(user_keys=["omada_login"])
@@ -79,8 +79,11 @@ async def sync_addresses(
         uuid=employee_uuid,
         it_systems=[omada_it_system],
     )
-    it_users = {u.engagement: u for u in mo_it_users}
-    assert all(u is not None for u in it_users)
+    it_users = {
+        u.engagement: u.uuid
+        for u in mo_it_users
+        if u.engagement is not None and u.uuid is not None
+    }
 
     # Get current user data from Omada
     raw_omada_users = await omada_api.get_users_by("C_CPRNR", [cpr_number])
@@ -95,18 +98,25 @@ async def sync_addresses(
     # Desired addresses from Omada
     desired = set()
     for omada_user in omada_users:
+        engagement_uuid = engagements.get(omada_user.engagement_user_key)
+        if engagement_uuid is None:
+            logger.warning(
+                "No engagement in MO: skipping address synchronisation for Omada user",
+                employee_uuid=employee_uuid,
+                engagement_user_key=omada_user.engagement_user_key,
+            )
+            continue
         for omada_attr, mo_address_user_key in address_map.items():
             omada_value = getattr(omada_user, omada_attr)
             if omada_value is None:
                 continue
-            engagement = engagements[omada_user.engagement_user_key].uuid
             c = ComparableAddress(
                 value=omada_value,
                 address_type=address_types[mo_address_user_key],
                 person=employee_uuid,
                 visibility=visibility_uuid,
-                engagement=engagement,
-                it_user=it_users[engagement].uuid,
+                engagement=engagement_uuid,
+                it_user=it_users[engagement_uuid],
                 validity=omada_user.validity,
             )
             desired.add(c)
