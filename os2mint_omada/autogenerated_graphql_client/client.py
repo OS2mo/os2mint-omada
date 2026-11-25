@@ -45,6 +45,8 @@ from .get_employee_uuid_from_cpr import GetEmployeeUuidFromCpr
 from .get_employee_uuid_from_cpr import GetEmployeeUuidFromCprEmployees
 from .get_it_systems import GetItSystems
 from .get_it_systems import GetItSystemsItsystems
+from .get_org_unit import GetOrgUnit
+from .get_org_unit import GetOrgUnitOrgUnits
 from .get_org_unit_validity import GetOrgUnitValidity
 from .get_org_unit_validity import GetOrgUnitValidityOrgUnits
 from .get_org_unit_with_user_key import GetOrgUnitWithUserKey
@@ -53,6 +55,7 @@ from .input_types import AddressCreateInput
 from .input_types import EmployeeCreateInput
 from .input_types import EngagementCreateInput
 from .input_types import ITUserCreateInput
+from .input_types import OrganisationUnitFilter
 
 
 def gql(q: str) -> str:
@@ -299,6 +302,31 @@ class GraphQLClient(AsyncBaseClient):
         response = await self.execute(query=query, variables=variables)
         data = self.get_data(response)
         return GetEmployeeItUsers.parse_obj(data).employees
+
+    async def get_org_unit(self, filter: OrganisationUnitFilter) -> GetOrgUnitOrgUnits:
+        query = gql("""
+            query get_org_unit($filter: OrganisationUnitFilter!) {
+              org_units(filter: $filter) {
+                objects {
+                  uuid
+                  validities {
+                    user_key
+                    name
+                    parent_uuid
+                    unit_type_response {
+                      validities {
+                        name
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """)
+        variables: dict[str, object] = {"filter": filter}
+        response = await self.execute(query=query, variables=variables)
+        data = self.get_data(response)
+        return GetOrgUnit.parse_obj(data).org_units
 
     async def get_org_unit_with_user_key(
         self, user_keys: Union[Optional[List[str]], UnsetType] = UNSET
