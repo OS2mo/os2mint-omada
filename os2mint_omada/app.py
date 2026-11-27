@@ -4,7 +4,6 @@
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
-from fastapi import APIRouter
 from fastapi import FastAPI
 from fastramqpi.events import GraphQLEvents
 from fastramqpi.events import Listener
@@ -75,22 +74,25 @@ def create_app() -> FastAPI:
         case "frederikshavn":
             mo_router = frederikshavn_mo_router
             omada_router = frederikshavn_omada_router
-            listeners = [
-                Listener(
-                    namespace="mo",
-                    user_key="org_unit",
-                    routing_key="org_unit",
-                    path="/events/mo/org-unit",
-                )
-            ]
-            mo_to_omada_router = frederikshavn_mo_to_omada_router
+            # TODO: set to True once the enable_mo_to_omada flag is removed
+            mo_to_omada = settings.enable_mo_to_omada
         case "silkeborg":
             mo_router = silkeborg_mo_router
             omada_router = silkeborg_omada_router
-            listeners = []
-            mo_to_omada_router = APIRouter()
+            mo_to_omada = False
         case _:
             raise ValueError("Improperly configured")
+
+    listeners = []
+    if mo_to_omada:
+        listeners.append(
+            Listener(
+                namespace="mo",
+                user_key="org_unit",
+                routing_key="org_unit",
+                path="/events/mo/org-unit",
+            )
+        )
 
     fastramqpi = FastRAMQPI(
         application_name="omada",
@@ -105,13 +107,13 @@ def create_app() -> FastAPI:
     # FastAPI router
     app = fastramqpi.get_app()
     app.include_router(api.router)
-    app.include_router(mo_to_omada_router)
 
     # MO to Omada
-    if settings.customer == "frederikshavn":
+    if mo_to_omada:
         fastramqpi.add_lifespan_manager(
             omada_client_lifespan(fastramqpi, settings.omada), priority=600
         )
+        app.include_router(frederikshavn_mo_to_omada_router)
 
     # MO AMQP
     mo_amqp_system = fastramqpi.get_amqpsystem()

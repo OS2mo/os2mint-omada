@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     omada: OmadaSettings
     customer: Literal["frederikshavn", "silkeborg"]
 
+    # TODO: remove flag once we go into production. The flag is added temporarily
+    #       so we can experiment on test while not affecting production.
+    enable_mo_to_omada: bool = False
+
     class Config:
         frozen = True
         env_nested_delimiter = "__"
