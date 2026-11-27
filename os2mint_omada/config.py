@@ -24,6 +24,8 @@ class OmadaAMQPConnectionSettings(AMQPConnectionSettings):
 
 
 class OmadaSettings(BaseModel):
+    # Base URL used for the MO to Omada synchronisation (Frederikshavn only):
+    base_url: AnyHttpUrl | None = None
     # OData view: http://omada.example.org/OData/DataObjects/Identity?viewid=xxxxx
     url: AnyHttpUrl
     oidc: OmadaOIDCSettings | None = None
